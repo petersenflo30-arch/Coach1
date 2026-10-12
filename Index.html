@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Calisthenics Coach</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+:root{color-scheme:dark;--bg:#080c14;--fg:#eef2f9;--card:#131a27;--ac:#22c55e;--ac2:#0ea5e9;--mut:#93a0b4;--line:#222c3d;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#080c14;--fg:#eef2f9;--card:#131a27;--mut:#93a0b4;--line:#222c3d}}
+:root[data-theme="dark"]{--bg:#080c14;--fg:#eef2f9;--card:#131a27;--mut:#93a0b4;--line:#222c3d}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--fg);font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;display:flex;flex-direction:column}
+main{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+main>*{animation:in .25s ease both}
+@keyframes in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+h1{font-size:26px;font-weight:800;letter-spacing:-.02em;margin:4px 0 0}h2{font-size:17px;font-weight:700;margin:0}
+.mut{color:var(--mut);font-size:14px}
+.card{background:var(--card);border-radius:20px;padding:16px;border:1px solid var(--line);box-shadow:0 4px 18px #0000000d}
+.big{font-size:28px;font-weight:800;letter-spacing:-.02em;margin:4px 0}
+.start{display:flex;justify-content:space-between;align-items:center;width:100%;border:1px solid var(--line);border-left:5px solid var(--ac);border-radius:20px;padding:16px;background:var(--card);color:var(--fg);font-size:17px;text-align:left;box-shadow:0 4px 18px #0000000d}
+.start span{color:var(--mut);font-size:13px}.start b{color:var(--ac);font-size:19px}
+.btn{border:0;border-radius:16px;padding:16px;background:linear-gradient(135deg,var(--ac),#10b981 55%,var(--ac2));color:#fff;font-size:18px;font-weight:700;width:100%;box-shadow:0 6px 16px #16a34a44;transition:transform .1s}
+.btn:active{transform:scale(.98)}
+.btn.g{background:var(--card);color:var(--fg);border:1px solid var(--line);box-shadow:none;font-size:15px;font-weight:600;padding:13px}
+.row{display:flex;gap:10px}.fld{flex:1}.fld label{display:block;font-size:13px;color:var(--mut);margin-bottom:4px}
+input,select,textarea{width:100%;padding:14px;border-radius:14px;border:1px solid var(--line);background:var(--card);color:var(--fg);font-size:20px;text-align:center}
+select{font-size:16px;text-align:left}
+.bar{height:8px;border-radius:4px;background:var(--line);overflow:hidden}.bar i{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,var(--ac),var(--ac2));transition:width .3s}
+.set{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-top:1px solid var(--line)}
+.ctr{text-align:center}.clock{font-size:76px;font-weight:800;color:var(--ac);font-variant-numeric:tabular-nums;margin:16px 0 4px}
+.cur{background:#16a34a22;border-radius:10px;padding-left:8px}
+.hint{background:#16a34a14;border-left:4px solid var(--ac);border-radius:12px;padding:10px 12px;font-size:14px}
+#nav{display:flex;gap:2px;padding:6px;background:var(--card);border-top:1px solid var(--line);box-shadow:0 -6px 20px #0000000d}
+#nav button{flex:1;padding:6px 2px;border:0;border-radius:14px;background:none;color:var(--mut);display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10px}
+#nav button.on{color:var(--ac);font-weight:700;background:#16a34a22}
+#nav button i{font-style:normal;font-size:21px;line-height:1}
+svg{width:100%;height:auto}
+</style>
+</head>
+<body>
+<main id="m"></main>
+<div id="nav"></div>
+<script>
+const BASE = {
+  'Push': [['Dips',3,'6–12',90],['Liegestütze auf Parallettes',3,'8–15',75],['Kurzhantel-Schulterdrücken',3,'8–12',75],['Langhantel-Bankdrücken',3,'6–10',90],['Trizepsdrücken (Kurzhantel)',2,'10–15',60]],
+  'Pull': [['Klimmzüge',4,'5–10',90],['Langhantel-Rudern',3,'8–12',90],['Kurzhantel-Rudern',3,'8–12',75],['Bizeps-Curls (Kurzhantel)',3,'10–12',60]],
+  'Beine': [['Langhantel-Kniebeugen',4,'6–10',120],['Rumänisches Kreuzheben',3,'8–10',90],['Ausfallschritte (Kurzhantel)',3,'10 je Bein',75],['Wadenheben',3,'15',45]],
+  'Oberkörper': [['Klimmzüge', 3, '5–10', 90], ['Dips', 3, '6–12', 90], ['Kurzhantel-Schulterdrücken', 3, '8–12', 75], ['Langhantel-Rudern', 3, '8–12', 75], ['Liegestütze auf Parallettes', 3, '8–15', 60], ['Bizeps-Curls (Kurzhantel)', 2, '10–12', 60]],
+  'Core': [['Hängendes Beinheben',3,'8–15',60],['L-Sit auf Parallettes (Sek.)',3,'max',60],['Plank (Sek.)',3,'max',45],['Russian Twist (Kurzhantel)',3,'20',45]],
+  'Ganzkörper': [['Langhantel-Kniebeugen',3,'6–10',90],['Klimmzüge',3,'5–10',90],['Dips',3,'6–12',90],['Kurzhantel-Schulterdrücken',2,'8–12',75],['Langhantel-Rudern',2,'8–12',75],['Hängendes Beinheben',2,'8–15',60]]
+};
+let PLAN = BASE;
+const SK = [
+ ['hs','Handstand','🤸','Schultern aktiv hochdrücken, Rippen einziehen, mit den Fingern die Balance steuern.',[['Wand-Handstand (Brust zur Wand)','3×30 s'],['Wand-Handstand (Bauch zur Wand)','3×30 s'],['Kick-ups, frei balancieren','5×10 s'],['Freier Handstand','3×30 s']]],
+ ['mu','Muscle-Up','🔝','Zieh explosiv bis zur Hüfte, dann schnell über die Stange kippen. Gerade Klimmzüge zuerst stark machen.',[['Klimmzüge','3×10'],['Explosive Klimmzüge bis Brust','3×6'],['Negative Muscle-Ups','3×5'],['Muscle-Up (Straight Bar)','3×3']]],
+ ['fl','Front Lever','🛩️','Schulterblätter nach unten ziehen, Körper steif wie ein Brett, Hüfte nicht einknicken.',[['Dead Hang + Scapula Pulls','3×30 s'],['Tuck Front Lever','3×10 s'],['Advanced Tuck','3×8 s'],['Straddle','3×6 s'],['Full Front Lever','3×5 s']]],
+ ['pl','Planche','🦅','Hände weit nach vorn lehnen, Schultern über die Hände schieben, Gesäß fest anspannen.',[['Planche Lean','3×20 s'],['Tuck Planche','3×10 s'],['Advanced Tuck','3×8 s'],['Straddle','3×5 s'],['Full Planche','3×3 s']]],
+ ['hf','Human Flag','🚩','Untere Hand drückt, obere Hand zieht. Zuerst Seitrumpf und Schultern stärken.',[['Seitstütz (Side Plank)','3×40 s'],['Klammer-Flag am Pfosten','3×10 s'],['Tuck Flag','3×8 s'],['Straddle Flag','3×6 s'],['Full Flag','3×5 s']]],
+ ['ls','L-Sit zum V-Sit','🔻','Arme durchstrecken, Schultern runter drücken, Knie gestreckt, Zehenspitzen ziehen.',[['Tuck L-Sit','3×20 s'],['Ein Bein gestreckt','3×15 s'],['L-Sit','3×20 s'],['V-Sit','3×10 s']]],
+ ['ps','Pistol Squat','🦵','Ferse bleibt am Boden, Brust aufrecht. Beweglichkeit der Knöchel regelmäßig dehnen.',[['Tiefe Kniebeuge halten','3×30 s'],['Pistol auf Box','3×8'],['Pistol mit Unterstützung','3×6'],['Freier Pistol Squat','3×5']]]
+];
+const $m = document.getElementById('m'), $n = document.getElementById('nav');
+let DB = null, mref = null, OWNER = false, SU = null, suStep = 0;
+let S = { log: [], skills: {}, goal: 4, prep: 5, plan: {}, bw: [], focus: null, profile: null, checks: [], aiPlan: null, group: null }, ref = null, sess = null, view = 'train', end = 0, tick = null, selEx = null, sw = 0;
+const dstr = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+const today = () => dstr(new Date());
+const mon = d => { const x = new Date(d); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - (x.getDay() + 6) % 7); return dstr(x); };
+const e1 = s => s.w > 0 ? s.w * (1 + s.r / 30) : s.r;
+const topR = r => { const m = String(r).match(/\d+/g); return m ? +m[m.length - 1] : 0; };
+const fmt = n => String(Math.round(n * 10) / 10).replace('.', ',');
+const lastOf = ex => [...S.log].reverse().find(s => s.ex === ex);
+const sk = id => S.skills[id] || (S.skills[id] = { lvl: 0, best: {} });
+
+function prevSession(ex) {
+  const a = S.log.filter(s => s.ex === ex && s.d !== today()); if (!a.length) return null;
+  const d = a[a.length - 1].d; return a.filter(s => s.d === d);
+}
+function target(p, reps) {
+  if (p.w === 0 && !hasVest()) return { w: 0, r: p.r + 1 };
+  const t = topR(reps), lo = +(String(reps).match(/\d+/) || [0])[0];
+  return (t && p.r >= t) ? { w: p.w + 2.5, r: lo || p.r } : { w: p.w, r: p.r + 1 };
+}
+function suggest(ex, sets, reps) {
+  const all = S.log.filter(s => s.ex === ex); if (!all.length) return null;
+  const ld = all[all.length - 1].d, ss = all.filter(s => s.d === ld), t = topR(reps);
+  if (t && ss.length >= sets && ss.every(s => s.r >= t)) return ss[0].w + 2.5;
+  return null;
+}
+async function init() {
+  try { const u = await claude.use("user"), db = await claude.use("db"); if (u && db) { DB = db; const id = await u.id(); ref = db.collection("data/users/" + id).doc("coach"); mref = db.collection("members").doc(id); OWNER = await u.isOwner(); } } catch (e) {}
+  const loadLocal = () => { try { const l = localStorage.getItem('coach'); if (l) S = Object.assign(S, JSON.parse(l)); } catch (e) {} };
+  try { if (ref) { const d = await ref.get(); if (d.exists) S = Object.assign(S, d.data()); else loadLocal(); } else loadLocal(); } catch (e) { loadLocal(); }
+  if (S.profile && !S.checks.length) S.checks.push({ d: today(), t: { ...S.profile.t } });
+  buildPlan(); if (!S.profile) view = 'setup'; render();
+}
+async function save() {
+  try { localStorage.setItem('coach', JSON.stringify(S)); } catch (e) {}
+  try { if (ref) await ref.set(S); } catch (e) {}
+  sync(); syncRank();
+}
+async function sync() {
+  if (!mref) return;
+  try {
+    if (S.share && S.profile) { const p = S.profile; await mref.set({ name: p.name, age: p.age, kg: S.bw.length ? S.bw[S.bw.length - 1].w : p.kg, goal: p.goal, lvl: p.lvl, t: p.t, updated: today() }); S.sent = true; }
+    else if (S.sent) { await mref.delete(); S.sent = false; }
+  } catch (e) {}
+}
+async function loadMembers(box) {
+  try {
+    const q = await DB.collection('members').get(); box.textContent = '';
+    if (q.empty) { box.textContent = 'Noch niemand hat Daten geteilt.'; return; }
+    q.docs.forEach(d => { const m = d.data(), t = m.t || {}, r = el('div', null, 'set'); r.style.flexDirection = 'column';
+      r.appendChild(el('b', (m.name || '?') + ' · ' + (m.age || '–') + ' J. · ' + (m.kg ? fmt(m.kg) + ' kg' : '–')));
+      r.appendChild(el('span', m.goal + ' · ' + m.lvl + ' | Klimmzüge ' + (t.pu || 0) + ', Liegestütze ' + (t.pp || 0) + ', Dips ' + (t.dp || 0) + ', Kniebeugen ' + (t.sq || 0) + ', Plank ' + (t.pl || 0) + ' s', 'mut')); box.appendChild(r); });
+  } catch (e) { box.textContent = 'Konnte nicht geladen werden.'; }
+}
+function el(t, x, c) { const e = document.createElement(t); if (x != null) e.textContent = x; if (c) e.className = c; return e; }
+function btn(x, f, c) { const b = el('button', x, 'btn' + (c ? ' ' + c : '')); b.onclick = f; return b; }
+const ac = () => window._ac || (window._ac = new (window.AudioContext || window.webkitAudioContext)());
+document.addEventListener('pointerdown', () => { try { const a = ac(); a.resume && a.resume(); } catch (e) {} });
+function beep(f, d) {
+  try { const a = ac(), o = a.createOscillator(), g = a.createGain(); o.frequency.value = f; g.gain.value = .25; o.connect(g); g.connect(a.destination); o.start(); o.stop(a.currentTime + d / 1000); } catch (e) {}
+  try { navigator.vibrate && navigator.vibrate(d); } catch (e) {}
+}
+function holdWidget(title, onSave) {
+  const w = el('div', null, 'card ctr'); w.style.cssText = 'display:flex;flex-direction:column;gap:10px';
+  w.appendChild(el('div', title, 'mut'));
+  const t = el('div', '0.0', 'clock'), st = el('div', 'Vorbereitung: ' + S.prep + ' s', 'mut'); w.append(t, st);
+  let mode = 0, t0 = 0, last = -1;
+  const b = btn('▶ Start', () => {
+    if (mode === 2) { const sec = Math.round((Date.now() - t0) / 100) / 10; mode = 0; clearInterval(tick); b.textContent = '▶ Start'; st.textContent = 'Gespeichert: ' + sec + ' s'; beep(500, 120); onSave(sec); return; }
+    if (mode === 1) { mode = 0; clearInterval(tick); t.textContent = '0.0'; st.textContent = 'Vorbereitung: ' + S.prep + ' s'; b.textContent = '▶ Start'; return; }
+    mode = 1; t0 = Date.now() + S.prep * 1000; last = -1; b.textContent = '✕ Abbrechen'; clearInterval(tick);
+    tick = setInterval(() => {
+      if (mode === 1) {
+        const ms = t0 - Date.now();
+        if (ms > 0) { const n = Math.ceil(ms / 1000); t.textContent = n; st.textContent = 'Geh jetzt in Position …'; if (n !== last) { last = n; beep(600, 80); } }
+        else { mode = 2; t0 = Date.now(); b.textContent = '■ Stopp & speichern'; st.textContent = 'Halten!'; beep(1000, 350); }
+      } else t.textContent = ((Date.now() - t0) / 1000).toFixed(1);
+    }, 100);
+  });
+  const pb = btn('Vorbereitungszeit ändern (3 / 5 / 10 s)', () => { if (mode) return; S.prep = S.prep >= 10 ? 3 : S.prep === 3 ? 5 : 10; st.textContent = 'Vorbereitung: ' + S.prep + ' s'; save(); }, 'g');
+  w.append(b, pb); return w;
+}
+const ALL = { bar: 1, dip: 1, bb: 1, db: 1, par: 1, vest: 1, band: 1 };
+const EQLIST = [['bar', 'Klimmzugstange'], ['dip', 'Dip-Barren'], ['par', 'Parallettes'], ['bb', 'Langhantel'], ['db', 'Kurzhanteln'], ['vest', 'Gewichtsweste'], ['band', 'Widerstandsbänder']];
+function eqSub(n, e) {
+  const M = {
+    'Klimmzüge': e.bar ? n : 'Umgekehrtes Rudern (Tisch/Stuhl)', 'Dips': e.dip ? n : 'Stuhl-Dips', 'Liegestütze auf Parallettes': e.par ? n : 'Liegestütze',
+    'Kurzhantel-Schulterdrücken': e.db ? n : 'Pike-Liegestütze', 'Langhantel-Bankdrücken': e.bb ? n : e.db ? 'Kurzhantel-Bankdrücken (am Boden)' : 'Diamant-Liegestütze',
+    'Trizepsdrücken (Kurzhantel)': e.db ? n : 'Diamant-Liegestütze', 'Langhantel-Rudern': e.bb ? n : e.db ? null : 'Umgekehrtes Rudern (Tisch/Stuhl)',
+    'Kurzhantel-Rudern': e.db ? n : 'Umgekehrtes Rudern (Tisch/Stuhl)', 'Bizeps-Curls (Kurzhantel)': e.db ? n : e.band ? 'Bizeps-Curls (Band)' : null,
+    'Hängendes Beinheben': e.bar ? n : 'Liegendes Beinheben', 'Langhantel-Kniebeugen': e.bb ? n : e.db ? 'Goblet-Kniebeugen (Kurzhantel)' : 'Kniebeugen',
+    'Rumänisches Kreuzheben': e.bb ? n : e.db ? 'Rumänisches Kreuzheben (Kurzhantel)' : 'Einbeiniges Kreuzheben (Körpergewicht)',
+    'Ausfallschritte (Kurzhantel)': e.db ? n : 'Ausfallschritte', 'L-Sit auf Parallettes (Sek.)': e.par ? n : 'L-Sit am Boden (Sek.)', 'Russian Twist (Kurzhantel)': e.db ? n : 'Russian Twist'
+  };
+  return n in M ? M[n] : n;
+}
+function hasVest() { const e = S.profile && S.profile.eq; return !e || !!e.vest; }
+function buildPlan() {
+  if (S.aiPlan) { PLAN = S.aiPlan; return; }
+  const p = S.profile; if (!p) { PLAN = BASE; return; }
+  const t = p.t || {}, T = { 'Klimmzüge': ['pu', 'Negative Klimmzüge (langsam ablassen)'], 'Liegestütze auf Parallettes': ['pp', 'Liegestütze auf Knien'], 'Dips': ['dp', 'Bankdips (Füße am Boden)'] }, o = {};
+  Object.keys(BASE).forEach(k => {
+    o[k] = BASE[k].map(([n, sets, reps, pause], i) => {
+      let name = n, r = reps, ss = sets;
+      const sub = eqSub(n, p.eq || ALL); if (sub === null) return null; name = sub;
+      const sw = S.swaps && S.swaps[k + '|' + n]; if (sw) { name = sw; if (/Sek/.test(name) && !/Sek/.test(n)) r = 'max'; else if (!/Sek/.test(name) && /Sek/.test(n)) r = '8–12'; }
+      if (T[n] && name === n) { const m = +(t[T[n][0]] || 0); if (m < 1) { name = T[n][1]; r = '5–8'; } else { const lo = Math.max(1, Math.round(m * .6)); r = lo + '–' + Math.max(lo + 2, m); } }
+      if (p.lvl === 'Anfänger' && ss > 2) ss--;
+      if (p.lvl === 'Profi' && i === 0) ss++;
+      return [name, ss, r, pause + (p.age >= 50 ? 15 : 0), n];
+    });
+  });
+  Object.keys(o).forEach(k => { o[k] = o[k].filter(Boolean).filter((e, i, a) => a.findIndex(x => x[0] === e[0]) === i); if (o[k].length < 3 && k === 'Pull') o[k] = o[k].concat([['Superman (Rücken)', 3, '12', 45], ['Reverse Snow Angels', 3, '12', 45]]); });
+  PLAN = o;
+}
+function profileView() {
+  const p = S.profile; if (!p) { go('setup'); return; }
+  $m.appendChild(el('h1', '👤 Profil'));
+  const c = el('div', null, 'card'); c.appendChild(el('div', p.name, 'big'));
+  const bw = S.bw.length ? S.bw[S.bw.length - 1].w : p.kg;
+  [['Alter', p.age ? p.age + ' Jahre' : '–'], ['Körpergewicht', bw ? fmt(bw) + ' kg' : '–'], ['Größe', p.cm ? p.cm + ' cm' : '–'], ['Ziel', p.goal], ['Erfahrung', p.lvl], ['Ausrüstung', p.eq ? (EQLIST.filter(x => p.eq[x[0]]).map(x => x[1]).join(', ') || 'keine') : 'alles'], ['Wochenziel', S.goal + ' Trainings']].forEach(([k, v]) => { const r = el('div', null, 'set'); r.appendChild(el('span', k, 'mut')); r.appendChild(el('span', v)); c.appendChild(r); });
+  $m.appendChild(c);
+  const t = el('div', null, 'card'); t.appendChild(el('h2', '💪 Meine Basiswerte'));
+  [['Klimmzüge', p.t.pu], ['Liegestütze', p.t.pp], ['Dips', p.t.dp], ['Kniebeugen', p.t.sq], ['Plank (Sek.)', p.t.pl]].forEach(([k, v]) => { const r = el('div', null, 'set'); r.appendChild(el('span', k, 'mut')); r.appendChild(el('span', String(v || 0))); t.appendChild(r); });
+  $m.appendChild(t);
+  const days = new Set(S.log.map(x => x.d + x.day)).size, lv = SK.reduce((a, x) => a + sk(x[0]).lvl, 0);
+  const z = el('div', null, 'card'); z.appendChild(el('h2', '📈 Bisher'));
+  [['Trainings', days], ['Sätze', S.log.length], ['Skill-Stufen geschafft', lv]].forEach(([k, v]) => { const r = el('div', null, 'set'); r.appendChild(el('span', k, 'mut')); r.appendChild(el('span', String(v))); z.appendChild(r); });
+  $m.appendChild(z);
+  $m.appendChild(btn('✏️ Profil & Werte bearbeiten', () => go('setup')));
+  $m.appendChild(btn('🧍 Körper-Check (BMI & Stärke)', () => go('body')));
+  $m.appendChild(btn('🤖 KI-Trainingsplan erstellen', () => go('ai')));
+  $m.appendChild(btn('🔊 Sprachansagen: ' + (S.voice === false ? 'aus' : 'an') + ' (tippen zum Wechseln)', () => { S.voice = S.voice === false ? true : false; save(); render(); }, 'g'));
+  $m.appendChild(btn('📤 Meine Basisdaten an den Ersteller schicken', () => {
+    const t = S.profile.t, txt = 'Coach-App: ' + S.profile.name + ', ' + S.profile.age + ' J., ' + (S.bw.length ? fmt(S.bw[S.bw.length - 1].w) : S.profile.kg) + ' kg, Ziel ' + S.profile.goal + ', ' + S.profile.lvl + '. Klimmzüge ' + t.pu + ', Liegestütze ' + t.pp + ', Dips ' + t.dp + ', Kniebeugen ' + t.sq + ', Plank ' + t.pl + ' s';
+    try { if (navigator.share) { navigator.share({ text: txt }).catch(() => {}); return; } } catch (e) {}
+    try { navigator.clipboard.writeText(txt); alert('Kopiert! Füge es in eine Nachricht ein.'); } catch (e) { alert(txt); }
+  }, 'g'));
+  $m.appendChild(btn('Wochenziel ändern (aktuell ' + S.goal + ')', () => { S.goal = S.goal >= 6 ? 2 : S.goal + 1; save(); render(); }, 'g'));
+  $m.appendChild(btn('📋 Daten sichern (in Zwischenablage kopieren)', () => { try { navigator.clipboard.writeText(JSON.stringify(S)); alert('Kopiert! Füge es in eine Notiz ein.'); } catch (e) { alert('Kopieren nicht möglich.'); } }, 'g'));
+}
+const firstMon = (y, m) => { const d = new Date(y, m, 1); d.setDate(1 + (8 - d.getDay()) % 7); return d; };
+const TN = { pu: 'Klimmzüge', pp: 'Liegestütze', dp: 'Dips', sq: 'Kniebeugen', pl: 'Plank (Sek.)' };
+function checkDone() { return S.checks.some(c => c.d.slice(0, 7) === today().slice(0, 7)); }
+function dueNow() { if (!S.profile) return false; const t = new Date(); return today() >= dstr(firstMon(t.getFullYear(), t.getMonth())) && !checkDone(); }
+function nextCheck() { const t = new Date(); let f = firstMon(t.getFullYear(), t.getMonth()); if (checkDone() || dstr(f) < today()) f = firstMon(t.getFullYear(), t.getMonth() + 1); return f; }
+function checkView() {
+  const last = S.checks[S.checks.length - 1] ? S.checks[S.checks.length - 1].t : S.profile.t, F = {};
+  $m.appendChild(el('h1', '📋 Monatscheck'));
+  $m.appendChild(el('div', 'Jeden ersten Montag im Monat testest du, wie stark du bist. Mach jeden Test sauber und so oft wie möglich am Stück, dann trage den Wert ein. Danach passe ich deinen Plan an.', 'hint'));
+  Object.keys(TN).forEach(k => {
+    const c = el('div', null, 'card'); c.appendChild(el('label', TN[k] + ' (letzter Wert: ' + (last[k] || 0) + ')', 'mut'));
+    const i = el('input'); i.type = 'number'; i.inputMode = 'numeric'; i.placeholder = String(last[k] || 0); i.style.marginTop = '6px'; c.appendChild(i); F[k] = i; $m.appendChild(c);
+  });
+  const wc = el('div', null, 'card'); wc.appendChild(el('label', 'Körpergewicht (kg, optional)', 'mut')); const wi = el('input'); wi.type = 'number'; wi.inputMode = 'decimal'; wi.style.marginTop = '6px'; wc.appendChild(wi); $m.appendChild(wc);
+  $m.appendChild(btn('✓ Check speichern', () => {
+    const t = {}; Object.keys(TN).forEach(k => { const v = F[k].value === '' ? (last[k] || 0) : (+F[k].value || 0); t[k] = v; });
+    S.checks.push({ d: today(), t }); S.profile.t = t;
+    const kg = parseFloat(String(wi.value).replace(',', '.')); if (kg) { S.profile.kg = kg; S.bw = S.bw.filter(x => x.d !== today()).concat([{ d: today(), w: kg }]); }
+    buildPlan(); save(); go('stats');
+  }));
+  $m.appendChild(btn('Zurück', () => go('train'), 'g'));
+}
+function previewView(k) {
+  const ex = PLAN[k]; if (!ex) { go('train'); return; }
+  const sets = ex.reduce((a, e) => a + e[1], 0), min = Math.round(ex.reduce((a, e) => a + e[1] * (40 + e[3]), 0) / 60);
+  $m.appendChild(btn('← Alle Trainings', () => go('train'), 'g'));
+  $m.appendChild(el('h1', k));
+  $m.appendChild(el('div', ex.length + ' Übungen · ' + sets + ' Sätze · ca. ' + min + ' Minuten', 'mut'));
+  ex.forEach(([n, ss, reps, pause], i) => {
+    const c = el('div', null, 'card'); c.appendChild(el('div', 'Übung ' + (i + 1), 'mut')); c.appendChild(el('h2', n));
+    c.appendChild(el('div', ss + ' Sätze · ' + reps + (/Sek/.test(n) ? '' : ' Wdh.') + ' · Pause ' + pause + ' s', 'mut'));
+    const ps = prevSession(n); if (ps) c.appendChild(el('div', 'Letztes Mal: ' + ps.map((x, j) => (j + 1) + ') +' + fmt(x.w) + '×' + x.r).join('  '), 'mut'));
+    c.appendChild(guideCard(n));
+    const sb = btn('🔁 Übung tauschen', () => { swapCtx = { k, i }; go('swap'); }, 'g'); sb.style.marginTop = '8px'; c.appendChild(sb);
+    $m.appendChild(c);
+  });
+  $m.appendChild(btn('▶ Training starten', () => start(k)));
+}
+function aiPrompt() {
+  const p = S.profile, t = p.t, f = SK.find(x => x[0] === S.focus);
+  const eq = EQLIST.filter(x => p.eq ? p.eq[x[0]] : true).map(x => x[1]).join(', ') || 'keine (nur Körpergewicht)';
+  return 'Du bist ein erfahrener Calisthenics- und Krafttrainer. Erstelle einen individuellen Trainingsplan für diese Person:\n- Alter: ' + p.age + ' Jahre, Gewicht: ' + p.kg + ' kg' + (p.cm ? ', Größe: ' + p.cm + ' cm' : '') + (p.sex && p.sex !== 'Keine Angabe' ? ', Geschlecht: ' + p.sex : '') + '\n- Ziel: ' + p.goal + ', Erfahrung: ' + p.lvl + '\n- Verfügbare Geräte: ' + eq + '\n- Maximal am Stück: Klimmzüge ' + t.pu + ', Liegestütze ' + t.pp + ', Dips ' + t.dp + ', Kniebeugen ' + t.sq + ', Plank ' + t.pl + ' Sekunden\n- Trainingstage pro Woche: ' + S.goal + (f ? '\n- Wunsch-Skill: ' + f[1] : '') +
+    '\n\nRegeln: Nutze nur die verfügbaren Geräte. Erstelle genau ' + S.goal + ' Trainings mit kurzen Namen (z. B. Push, Pull, Beine). Jedes Training hat 4 bis 6 Übungen. Wenn ein Skill gewünscht ist, baue passende Vorübungen ein. Bei Haltezeit-Übungen schreibe "(Sek.)" in den Namen. Wiederholungen als Bereich, z. B. "6–10". Passe alles an Alter, Erfahrung und Basiswerte an.\n\nAntworte AUSSCHLIESSLICH mit gültigem JSON, ohne Text davor oder danach, in genau diesem Format:\n{"Push":[{"n":"Dips","s":3,"r":"6–10","p":90}],"Pull":[{"n":"Klimmzüge","s":4,"r":"5–8","p":90}]}\n(n = Übungsname, s = Sätze, r = Wiederholungen, p = Pause in Sekunden)';
+}
+function aiView() {
+  const prompt = aiPrompt(), msg = el('div', '', 'mut');
+  $m.appendChild(btn('← Zurück', () => go('profile'), 'g'));
+  $m.appendChild(el('h1', '🤖 KI-Trainingsplan'));
+  $m.appendChild(el('div', 'Lass dir von einer KI (Claude, ChatGPT …) einen Plan nur für dich erstellen und übernimm ihn hier. Du gibst deine Daten dabei selbst in die KI ein.', 'hint'));
+  const c1 = el('div', null, 'card'); c1.appendChild(el('h2', '1. Anweisung kopieren'));
+  const ta = el('textarea'); ta.readOnly = true; ta.value = prompt; ta.rows = 5; ta.style.cssText = 'width:100%;margin-top:8px;padding:10px;border-radius:10px;border:1px solid #8885;background:var(--bg);color:var(--fg);font-size:13px';
+  c1.appendChild(ta);
+  c1.appendChild(btn('📋 Anweisung kopieren', () => { try { navigator.clipboard.writeText(prompt); msg.textContent = 'Kopiert!'; } catch (e) { ta.select(); msg.textContent = 'Markiert: bitte lange drücken und „Kopieren" wählen.'; } }, 'g'));
+  $m.appendChild(c1);
+  const c2 = el('div', null, 'card'); c2.appendChild(el('h2', '2. In die KI einfügen')); c2.appendChild(el('div', 'Öffne Claude, ChatGPT oder eine andere KI, füge die Anweisung ein und sende sie ab.', 'mut')); $m.appendChild(c2);
+  const c3 = el('div', null, 'card'); c3.appendChild(el('h2', '3. Antwort hier einfügen'));
+  const ans = el('textarea'); ans.rows = 5; ans.placeholder = 'Antwort der KI hier einfügen'; ans.style.cssText = ta.style.cssText; ans.readOnly = false; c3.appendChild(ans);
+  c3.appendChild(btn('✓ Plan übernehmen', () => {
+    try {
+      const m = ans.value.match(/\{[\s\S]*\}/), o = JSON.parse(m[0]), out = {};
+      Object.keys(o).slice(0, 7).forEach(k => {
+        if (!Array.isArray(o[k])) return;
+        const ex = o[k].slice(0, 8).map(e => [String(e.n || '').replace(/[<>|]/g, '').slice(0, 50), Math.min(6, Math.max(1, Math.round(+e.s) || 3)), String(e.r || '8–12').slice(0, 20), Math.min(240, Math.max(20, Math.round(+e.p) || 60))]).filter(e => e[0]);
+        const name = String(k).replace(/[<>|]/g, '').slice(0, 20).trim();
+        if (ex.length >= 2 && name) out[name] = ex;
+      });
+      if (!Object.keys(out).length) throw 0;
+      S.aiPlan = out; S.plan = {}; buildPlan(); save(); go('train');
+    } catch (e) { msg.textContent = 'Das habe ich nicht verstanden. Kopiere die komplette Antwort der KI, sie muss mit { beginnen.'; }
+  })); c3.appendChild(msg); $m.appendChild(c3);
+  if (S.aiPlan) {
+    const c4 = el('div', null, 'card'); c4.appendChild(el('h2', '✅ KI-Plan ist aktiv'));
+    c4.appendChild(el('div', Object.keys(S.aiPlan).join(', ') + '. Nach dem Monatscheck kannst du hier einen neuen Plan erstellen lassen.', 'mut'));
+    c4.appendChild(btn('Automatischen Plan wieder nutzen', () => { S.aiPlan = null; S.plan = {}; buildPlan(); save(); render(); }, 'g')); $m.appendChild(c4);
+  }
+}
+const GUIDE = [
+  [/rudern/i, 'Rücken gerade, Rumpf fest, Ellbogen nach hinten ziehen, Schulterblätter zusammen. Körper bleibt stabil.', 'Runder Rücken und Schwung aus dem Oberkörper.'],
+  [/klimmz|chin/i, 'Mit aktiven Schultern hängen, Brust zur Stange ziehen, Kinn drüber, in 3 Sekunden kontrolliert ablassen.', 'Schwung holen oder halbe Wiederholungen.'],
+  [/liegest|pike|diamant/i, 'Körper wie ein Brett, Ellbogen ca. 45° zum Körper, Brust fast zum Boden, kräftig hochdrücken.', 'Hüfte hängt durch oder der Kopf fällt nach vorn.'],
+  [/dips/i, 'Schultern runter und weg von den Ohren, Ellbogen nach hinten, bis die Oberarme waagerecht sind, dann hochdrücken.', 'Schultern nach vorn kippen lassen oder zu tief absinken.'],
+  [/trizeps/i, 'Oberarme eng am Körper, nur der Unterarm bewegt sich, oben komplett strecken.', 'Ellbogen wandern nach außen.'],
+  [/schulterdr/i, 'Hanteln auf Schulterhöhe, Rumpf fest, senkrecht nach oben drücken.', 'Hohlkreuz und Schwung aus den Beinen.'],
+  [/bankdr/i, 'Schulterblätter zusammenziehen, Füße fest am Boden, kontrolliert zur Brust senken und drücken.', 'Ellbogen weit nach außen oder Hintern abheben.'],
+  [/curl/i, 'Ellbogen fest am Körper, langsam hochziehen und in 2–3 Sekunden ablassen.', 'Mit dem Rücken schwingen.'],
+  [/kreuzheb/i, 'Hüfte nach hinten schieben, Rücken gerade, Gewicht dicht am Bein, bis du die Dehnung hinten spürst.', 'Runder Rücken oder zu viel Kniebeuge.'],
+  [/kniebeug|squat/i, 'Füße schulterbreit, Brust aufrecht, Hüfte unter Kniehöhe senken, Knie in Zehenrichtung, Fersen am Boden.', 'Knie fallen nach innen oder die Fersen heben ab.'],
+  [/ausfall/i, 'Großer Schritt, hinteres Knie fast zum Boden, Oberkörper aufrecht, vorderes Knie über dem Fuß.', 'Zu kurzer Schritt oder das Knie knickt nach innen.'],
+  [/wade/i, 'Auf die Zehenspitzen, oben 1 Sekunde halten, langsam ganz absenken.', 'Zu schnell und mit halber Bewegung.'],
+  [/beinheb/i, 'Rumpf anspannen, Beine gestreckt bis Hüfthöhe heben, ohne Schwung ablassen.', 'Schwingen oder Hohlkreuz.'],
+  [/l-sit/i, 'Arme durchstrecken, Schultern nach unten drücken, Beine gestreckt vor dir halten.', 'Schultern zu den Ohren gezogen oder Knie gebeugt.'],
+  [/plank/i, 'Ellbogen unter den Schultern, Po und Bauch fest, Körper eine gerade Linie.', 'Hüfte hängt durch oder der Po ragt hoch.'],
+  [/twist/i, 'Oberkörper leicht zurück, Rücken gerade, aus dem Rumpf drehen, nicht nur die Arme bewegen.', 'Runder Rücken.'],
+  [/superman/i, 'Auf dem Bauch, Arme und Beine leicht anheben, 2 Sekunden halten, Nacken neutral.', 'Den Kopf in den Nacken reißen.'],
+  [/snow/i, 'Arme gestreckt über dem Boden von der Hüfte bis über den Kopf führen, Rücken bleibt flach.', 'Rücken hebt sich vom Boden ab.']
+];
+const QUOTES = ['Disziplin schlägt Motivation.', 'Jeder Satz bringt dich weiter.', 'Heute trainieren, morgen stärker sein.', 'Kleine Schritte, große Ergebnisse.', 'Stark wird man nicht über Nacht, sondern Satz für Satz.', 'Du musst nicht perfekt sein, nur dranbleiben.', 'Schwitzen jetzt, stolz sein später.', 'Dein Körper kann mehr, als dein Kopf glaubt.', 'Konstanz ist der echte Cheat-Code.', 'Der beste Zeitpunkt ist jetzt.'];
+const MUSC = [[/rudern/i, 'Rücken, hintere Schulter, Bizeps'], [/klimmz|chin/i, 'Latissimus, oberer Rücken, Bizeps'], [/dips/i, 'Brust, Trizeps, vordere Schulter'], [/pike/i, 'Schultern, Trizeps'], [/liegest|diamant/i, 'Brust, vordere Schulter, Trizeps'], [/trizeps/i, 'Trizeps'], [/schulterdr/i, 'Schultern, Trizeps'], [/bankdr/i, 'Brust, Schultern, Trizeps'], [/curl/i, 'Bizeps, Unterarme'], [/kreuzheb/i, 'Beinbeuger, Gesäß, unterer Rücken'], [/kniebeug|squat/i, 'Oberschenkel, Gesäß, Rumpf'], [/ausfall/i, 'Oberschenkel, Gesäß, Gleichgewicht'], [/wade/i, 'Waden'], [/beinheb/i, 'Bauch, Hüftbeuger'], [/l-sit/i, 'Bauch, Schultern, Trizeps'], [/plank/i, 'Rumpf, Bauch, Schultern'], [/twist/i, 'Seitliche Bauchmuskeln'], [/superman/i, 'Unterer Rücken, Gesäß'], [/snow/i, 'Oberer Rücken, hintere Schulter']];
+const muscles = n => { const m = MUSC.find(x => x[0].test(n)); return m ? m[1] : 'Ganzkörper'; };
+function xpInfo() {
+  const best = {}, seen = {}, tr = new Set(); let recs = 0;
+  S.log.forEach(s => { const e = e1(s), pb = best[s.ex] || 0; tr.add(s.d + s.day); if (pb > 0 && e > pb && !seen[s.d + s.ex]) { recs++; seen[s.d + s.ex] = 1; } if (e > pb) best[s.ex] = e; });
+  const xp = S.log.length * 10 + tr.size * 50 + recs * 25; let lvl = 1, need = 100, acc = 0;
+  while (xp >= acc + need) { acc += need; lvl++; need = 100 + (lvl - 1) * 50; }
+  return { xp, lvl, cur: xp - acc, need };
+}
+function guideFor(n) { const g = GUIDE.find(x => x[0].test(n)); return g ? [g[1], g[2]] : ['Führe jede Wiederholung kontrolliert aus, atme gleichmäßig und spanne den Rumpf an.', 'Zu viel Schwung. Bei Schmerzen sofort abbrechen.']; }
+function guideCard(n) {
+  const [how, bad] = guideFor(n), w = el('div'), bd = el('div', '⚠️ Typischer Fehler: ' + bad, 'hint');
+  w.style.cssText = 'display:flex;flex-direction:column;gap:8px'; bd.style.display = 'none';
+  w.appendChild(el('div', '🎯 Zielmuskeln: ' + muscles(n), 'mut')); w.appendChild(el('div', '✅ ' + how, 'hint'));
+  w.appendChild(btn('⚠️ Typischer Fehler', () => { bd.style.display = bd.style.display === 'none' ? 'block' : 'none'; }, 'g')); w.appendChild(bd); return w;
+}
+const DB_URL = 'https://coach-rangliste-default-rtdb.europe-west1.firebasedatabase.app';
+const APP_URL = 'https://petersenflo30-arch.github.io/Coach1/';
+function weekPts(wk) {
+  const best = {}, seen = {}, tr = new Set(); let sets = 0, recs = 0;
+  S.log.forEach(s => {
+    const e = e1(s), pb = best[s.ex] || 0;
+    if (mon(s.d + 'T12:00') === wk) { sets++; tr.add(s.d + s.day); if (pb > 0 && e > pb && !seen[s.d + s.ex]) { recs++; seen[s.d + s.ex] = 1; } }
+    if (e > pb) best[s.ex] = e;
+  });
+  return { tr: tr.size, sets, recs, pts: tr.size * 20 + sets * 2 + recs * 10 };
+}
+const RB = [['pu', 'Klimmzüge', 'Wdh.'], ['pp', 'Liegestütze', 'Wdh.'], ['dp', 'Dips', 'Wdh.'], ['sq', 'Kniebeugen', 'Wdh.'], ['pl', 'Plank', 's']];
+const RBX = { pu: /klimmz/i, pp: /^liegestütze( auf parallettes)?$/i, dp: /^dips$/i, sq: /^kniebeugen$/i, pl: /plank/i };
+let rankTab = 'week', rankTimer = null;
+function bestVal(k) {
+  const t = S.profile && S.profile.t ? S.profile.t[k] || 0 : 0;
+  const lg = S.log.filter(s => RBX[k].test(s.ex) && !/negativ/i.test(s.ex) && s.w === 0).reduce((a, s) => Math.max(a, s.r), 0);
+  return Math.max(t, lg);
+}
+async function putRank(path, v) { try { await fetch(DB_URL + '/groups/' + path + '/' + S.group.uid + '.json', { method: 'PUT', body: JSON.stringify(v) }); } catch (e) {} }
+async function pushRank() {
+  if (!DB_URL || !S.group) return;
+  const wk = mon(new Date()), n = S.group.nick.slice(0, 20);
+  await Promise.all([putRank(S.group.code, { n, p: weekPts(wk).pts, w: wk })].concat(chPuts(wk, n), RB.map(([k]) => { const v = bestVal(k); return v > 0 ? putRank(S.group.code + '-' + k, { n, p: v, w: 'all' }) : null; })));
+}
+function syncRank() { if (!DB_URL || !S.group) return; clearTimeout(rankTimer); rankTimer = setTimeout(pushRank, 2000); }
+function rankView() {
+  $m.appendChild(el('h1', '🏆 Rangliste'));
+  if (!DB_URL) { $m.appendChild(el('div', 'Die Rangliste ist noch nicht eingerichtet.', 'card mut')); return; }
+  if (!S.group) {
+    $m.appendChild(el('div', 'Tritt einer privaten Gruppe bei. Alle mit dem gleichen Gruppen-Code sehen sich gegenseitig. Den Code legt einer von euch fest, die anderen geben ihn ein.', 'hint'));
+    const c = el('div', null, 'card'), ni = el('input'), ci = el('input');
+    ni.placeholder = 'Dein Spitzname'; ni.value = S.profile ? String(S.profile.name).split(' ')[0] : ''; ni.style.textAlign = 'left';
+    ci.placeholder = 'Gruppen-Code, z. B. gym-crew'; ci.style.cssText = 'text-align:left;margin-top:8px'; ci.autocapitalize = 'none';
+    c.append(ni, ci); $m.appendChild(c);
+    const msg = el('div', '', 'mut'); $m.appendChild(msg);
+    $m.appendChild(el('div', 'Mit dem Beitritt werden dein Spitzname, deine Wochenpunkte und deine Bestwerte (Klimmzüge, Liegestütze, Dips, Kniebeugen, Plank) online gespeichert und sind für alle in der Gruppe sichtbar. Sonst nichts.', 'mut'));
+    $m.appendChild(btn('Beitreten', () => {
+      const code = ci.value.trim().toLowerCase(), nick = ni.value.trim();
+      if (!/^[a-z0-9_-]{4,30}$/.test(code)) { msg.textContent = 'Code: 4 bis 30 Zeichen, nur Buchstaben, Zahlen, - und _'; return; }
+      if (!nick) { msg.textContent = 'Bitte einen Spitznamen eingeben.'; return; }
+      S.group = { code, nick, uid: Math.random().toString(36).slice(2, 10) + Date.now().toString(36) }; save(); render();
+    }));
+    return;
+  }
+  const g = S.group, wk = mon(new Date()), cur = RB.find(x => x[0] === rankTab), isCh = rankTab === 'ch';
+  const chips = el('div'); chips.style.cssText = 'display:flex;gap:8px;overflow-x:auto;padding-bottom:4px';
+  [['week', '🏆 Woche'], ['ch', '🎯 Challenge']].concat(RB.map(x => [x[0], x[1]])).forEach(([k, l]) => {
+    const b = el('button', l), on = rankTab === k;
+    b.style.cssText = 'flex:0 0 auto;border:1px solid var(--line);border-radius:999px;padding:8px 14px;font-size:14px;font-weight:600;background:' + (on ? 'var(--ac)' : 'var(--card)') + ';color:' + (on ? '#fff' : 'var(--fg)');
+    b.onclick = () => { rankTab = k; render(); }; chips.appendChild(b);
+  });
+  $m.appendChild(chips);
+  const mc = el('div', null, 'card'), [chk, chn, cht] = chWeek(wk), chr = chReps(chk, wk);
+  if (isCh) { mc.appendChild(el('div', 'Challenge dieser Woche', 'mut')); mc.appendChild(el('div', cht + ' ' + chn, 'big')); const pb = el('div', null, 'bar'), pi = el('i'); pi.style.width = Math.min(100, chr / cht * 100) + '%'; pb.appendChild(pi); mc.appendChild(pb); mc.appendChild(el('div', chr + ' von ' + cht + ' · Wer zuerst fertig ist, gewinnt. Gezählt wird automatisch aus deinem Training, jede Woche startet eine neue Challenge.', 'mut')); }
+  else if (cur) { mc.appendChild(el('div', 'Dein Bestwert: ' + cur[1], 'mut')); mc.appendChild(el('div', bestVal(cur[0]) + ' ' + cur[2], 'big')); mc.appendChild(el('div', 'Zählt aus deinem Monatscheck und deinem Training, ohne Zusatzgewicht.', 'mut')); }
+  else { const m = weekPts(wk); mc.appendChild(el('div', 'Deine Punkte diese Woche', 'mut')); mc.appendChild(el('div', String(m.pts), 'big')); mc.appendChild(el('div', m.tr + ' Trainings · ' + m.sets + ' Sätze · ' + m.recs + ' Rekorde. 20 Punkte pro Training, 2 pro Satz, 10 pro Rekord. Neustart jeden Montag.', 'mut')); }
+  $m.appendChild(mc);
+  const lc = el('div', null, 'card'); lc.appendChild(el('h2', (isCh ? 'Challenge' : cur ? cur[1] : 'Wochenpunkte') + ' · Gruppe ' + g.code)); const box = el('div', 'Lade …', 'mut'); box.style.marginTop = '8px'; lc.appendChild(box); $m.appendChild(lc);
+  (async () => {
+    await pushRank();
+    try {
+      const r = await fetch(DB_URL + '/groups/' + g.code + (isCh ? '-ch' : cur ? '-' + cur[0] : '') + '.json'), o = (await r.json()) || {}; let fin = {}; if (isCh) { const r2 = await fetch(DB_URL + '/groups/' + g.code + '-chf.json'); fin = (await r2.json()) || {}; }
+      const rows = Object.keys(o).filter(k => o[k] && (cur || o[k].w === wk)).map(k => ({ id: k, n: o[k].n, p: o[k].p, f: fin[k] && fin[k].w === wk ? fin[k].p : null })).sort((a, b) => isCh ? ((a.f != null ? a.f : 1e9) - (b.f != null ? b.f : 1e9)) || b.p - a.p : b.p - a.p);
+      box.textContent = ''; const med = ['🥇', '🥈', '🥉'];
+      rows.forEach((x, i) => { const d = el('div', null, 'set' + (x.id === g.uid ? ' cur' : '')); d.appendChild(el('span', (med[i] || (i + 1) + '.') + '  ' + x.n)); d.appendChild(el('b', isCh ? (x.f != null ? '✅ ' + fmtMin(x.f) : x.p + '/' + cht) : x.p + ' ' + (cur ? cur[2] : 'Pkt.'))); box.appendChild(d); });
+      if (!rows.length) box.textContent = 'Noch niemand hat hier einen Eintrag.';
+    } catch (e) { box.textContent = 'Konnte die Rangliste nicht laden. Prüfe deine Internetverbindung.'; }
+  })();
+  $m.appendChild(btn('🔄 Aktualisieren', () => render(), 'g'));
+  $m.appendChild(btn('📨 Freunde einladen', () => { const t = 'Mach mit bei unserer Coach-Rangliste! App: ' + APP_URL + ' · Gruppen-Code: ' + g.code; try { if (navigator.share) { navigator.share({ text: t }).catch(() => {}); return; } navigator.clipboard.writeText(t); alert('Kopiert!'); } catch (e) { alert(t); } }, 'g'));
+  $m.appendChild(btn('Gruppe verlassen', async () => {
+    if (!confirm('Gruppe verlassen und deine Einträge löschen?')) return;
+    await Promise.all([g.code, g.code + '-ch', g.code + '-chf'].concat(RB.map(x => g.code + '-' + x[0])).map(p => fetch(DB_URL + '/groups/' + p + '/' + g.uid + '.json', { method: 'DELETE' }).catch(() => {})));
+    S.group = null; save(); render();
+  }, 'g'));
+}
+let popQ = [];
+function popup(t, x) { popQ.push([t, x]); if (popQ.length === 1) showPop(); }
+function showPop() {
+  const [t, x] = popQ[0], o = el('div'), c = el('div', null, 'card ctr');
+  o.style.cssText = 'position:fixed;inset:0;background:#000a;display:flex;align-items:center;justify-content:center;z-index:99;padding:24px';
+  c.style.maxWidth = '340px'; c.appendChild(el('div', t, 'big')); c.appendChild(el('div', x, 'mut'));
+  const b = btn('Super!', () => { o.remove(); popQ.shift(); if (popQ.length) showPop(); }); b.style.marginTop = '14px'; c.appendChild(b); o.appendChild(c); document.body.appendChild(o); beep(900, 200);
+}
+function award(id, t, x) { if (!S.badges) S.badges = []; if (S.badges.includes(id)) return; S.badges.push(id); popup(t, x); save(); }
+function streakWeeks() {
+  const cnt = k => new Set(S.log.filter(x => mon(x.d + 'T12:00') === k).map(x => x.d + x.day)).size;
+  let st = cnt(mon(new Date())) >= S.goal ? 1 : 0;
+  for (let i = 1; i <= 52; i++) { const d = new Date(); d.setDate(d.getDate() - 7 * i); if (cnt(mon(d)) >= S.goal) st++; else break; }
+  return st;
+}
+function say(t) {
+  if (S.voice === false) return;
+  try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(t); u.lang = 'de-DE'; const v = speechSynthesis.getVoices().find(v => v.lang && v.lang.startsWith('de')); if (v) u.voice = v; speechSynthesis.speak(u); } catch (e) {}
+}
+function tgFor(c) { const ps = prevSession(c.ex), p = ps ? (ps[c.n - 1] || ps[ps.length - 1]) : null; return p ? target(p, c.reps) : null; }
+function sayTarget(t, ex) { return t ? '. Ziel: ' + (t.w > 0 ? fmt(t.w) + ' Kilo, ' : '') + t.r + (/Sek/.test(ex) ? ' Sekunden' : ' Wiederholungen') : ''; }
+const CHL = [['pp', 'Liegestütze', 100], ['pu', 'Klimmzüge', 30], ['dp', 'Dips', 60]];
+const chWeek = wk => CHL[Math.floor(new Date(wk + 'T12:00').getTime() / 6048e5) % 3];
+const chReps = (k, wk) => S.log.filter(s => mon(s.d + 'T12:00') === wk && RBX[k].test(s.ex) && !/negativ/i.test(s.ex)).reduce((a, s) => a + s.r, 0);
+const fmtMin = m => (m >= 1440 ? Math.floor(m / 1440) + ' T ' : '') + Math.floor(m % 1440 / 60) + ' Std.';
+function chPuts(wk, n) {
+  const [k, , t] = chWeek(wk), reps = chReps(k, wk), a = [putRank(S.group.code + '-ch', { n, p: Math.min(reps, 99999), w: wk })];
+  if (reps >= t) { if (!S.chDone) S.chDone = {}; if (S.chDone[wk] == null) S.chDone[wk] = Math.max(0, Math.round((Date.now() - new Date(wk + 'T00:00:00').getTime()) / 6e4)); a.push(putRank(S.group.code + '-chf', { n, p: S.chDone[wk], w: wk })); }
+  return a;
+}
+let swapCtx = null;
+const EXG = [
+  ['Liegestütze', 'Liegestütze auf Parallettes', 'Pike-Liegestütze', 'Diamant-Liegestütze', 'Dips', 'Stuhl-Dips', 'Kurzhantel-Schulterdrücken', 'Kurzhantel-Bankdrücken (am Boden)', 'Langhantel-Bankdrücken', 'Trizepsdrücken (Kurzhantel)'],
+  ['Klimmzüge', 'Umgekehrtes Rudern (Tisch/Stuhl)', 'Langhantel-Rudern', 'Kurzhantel-Rudern', 'Bizeps-Curls (Kurzhantel)', 'Bizeps-Curls (Band)', 'Superman (Rücken)', 'Reverse Snow Angels'],
+  ['Kniebeugen', 'Goblet-Kniebeugen (Kurzhantel)', 'Langhantel-Kniebeugen', 'Ausfallschritte', 'Ausfallschritte (Kurzhantel)', 'Rumänisches Kreuzheben', 'Rumänisches Kreuzheben (Kurzhantel)', 'Einbeiniges Kreuzheben (Körpergewicht)', 'Wadenheben'],
+  ['Plank (Sek.)', 'L-Sit am Boden (Sek.)', 'L-Sit auf Parallettes (Sek.)', 'Liegendes Beinheben', 'Hängendes Beinheben', 'Russian Twist', 'Russian Twist (Kurzhantel)']
+];
+function eqOk(n) { const e = (S.profile && S.profile.eq) || ALL; return !(/Langhantel/.test(n) && !e.bb) && !(/Kurzhantel/.test(n) && !e.db) && !(/Parallettes/.test(n) && !e.par) && !(/Hängendes|^Klimmzüge$/.test(n) && !e.bar) && !(/^Dips$/.test(n) && !e.dip) && !(/Band/.test(n) && !e.band); }
+function swapView() {
+  if (!swapCtx || !PLAN[swapCtx.k]) { go('train'); return; }
+  const { k, i } = swapCtx, cur = PLAN[k][i], grp = EXG.find(g => g.includes(cur[0])) || EXG.flat();
+  $m.appendChild(btn('← Zurück', () => go('prev:' + k), 'g'));
+  $m.appendChild(el('h1', 'Übung tauschen'));
+  $m.appendChild(el('div', 'Ersetzt „' + cur[0] + '" dauerhaft in deinem ' + k + '-Training. Sätze und Pause bleiben. Es gibt nur Übungen für die gleiche Muskelgruppe und deine Geräte.', 'hint'));
+  const alts = grp.filter(n => n !== cur[0] && eqOk(n) && !PLAN[k].some(e => e[0] === n));
+  if (!alts.length) $m.appendChild(el('div', 'Keine passende Alternative mit deiner Ausrüstung.', 'card mut'));
+  alts.forEach(n => $m.appendChild(btn(n, () => { if (S.aiPlan) PLAN[k][i][0] = n; else { S.swaps = S.swaps || {}; S.swaps[k + '|' + cur[4]] = n; } buildPlan(); save(); go('prev:' + k); }, 'g')));
+  if (!S.aiPlan && S.swaps && S.swaps[k + '|' + cur[4]]) $m.appendChild(btn('↩️ Standardübung wiederherstellen', () => { delete S.swaps[k + '|' + cur[4]]; buildPlan(); save(); go('prev:' + k); }));
+}
+const SEXKEY = t => /Junge|Mann/.test(t || '') ? 'm' : /Mädchen|Frau/.test(t || '') ? 'f' : 'x';
+const THR = { m: { pu: [3, 8, 15], pp: [10, 25, 40], dp: [5, 15, 25], sq: [20, 40, 60], pl: [30, 60, 120] }, f: { pu: [1, 4, 9], pp: [5, 15, 25], dp: [3, 10, 18], sq: [15, 35, 55], pl: [20, 45, 90] } };
+const LVN = ['Einsteiger', 'Solide', 'Stark', 'Sehr stark'];
+function thr(k) { const sx = SEXKEY(S.profile && S.profile.sex); return sx === 'x' ? THR.m[k].map((v, i) => Math.round((v + THR.f[k][i]) / 2)) : THR[sx][k]; }
+function lvlOf(k, v) { const t = thr(k); return v >= t[2] ? 3 : v >= t[1] ? 2 : v >= t[0] ? 1 : 0; }
+function bodyView() {
+  const p = S.profile; if (!p) { go('setup'); return; }
+  $m.appendChild(btn('← Zurück', () => go('profile'), 'g')); $m.appendChild(el('h1', '🧍 Körper-Check'));
+  const kg = S.bw.length ? S.bw[S.bw.length - 1].w : p.kg, cm = p.cm, c = el('div', null, 'card'); c.appendChild(el('h2', 'BMI'));
+  if (kg && cm) {
+    const b = kg / Math.pow(cm / 100, 2); c.appendChild(el('div', fmt(b), 'big')); c.appendChild(el('div', fmt(kg) + ' kg · ' + cm + ' cm', 'mut'));
+    c.appendChild(el('div', p.age >= 18 ? (b < 18.5 ? 'Unter dem Normalbereich' : b < 25 ? 'Im Normalbereich' : b < 30 ? 'Über dem Normalbereich' : 'Deutlich über dem Normalbereich') : 'Bei Jugendlichen wird der BMI im Altersvergleich (Perzentile) bewertet. Eine Einstufung gibt es hier deshalb nicht. Bei Fragen hilft deine Ärztin oder dein Arzt.', 'hint'));
+    c.appendChild(el('div', 'Der BMI kennt keine Muskeln. Wer Kraft aufbaut, kann damit höher liegen, ohne zu viel Fett zu haben. Er ersetzt keinen Rat von Ärztinnen und Ärzten.', 'mut'));
+  } else c.appendChild(el('div', 'Trage im Profil unter „Profil & Werte bearbeiten" deine Größe und dein Gewicht ein.', 'mut'));
+  $m.appendChild(c);
+  const s2 = el('div', null, 'card'); s2.appendChild(el('h2', '💪 Wie stark bist du?'));
+  let sum = 0, weak = null, rows = [];
+  Object.keys(TN).forEach(k => {
+    const v = bestVal(k), l = lvlOf(k, v), t = thr(k); sum += l; if (!weak || l < weak[0]) weak = [l, k];
+    const r = el('div', null, 'set'), top = el('div'), bar = el('div', null, 'bar'), f = el('i');
+    r.style.flexDirection = 'column'; top.style.cssText = 'display:flex;justify-content:space-between'; top.appendChild(el('span', TN[k])); top.appendChild(el('b', v + ' · ' + LVN[l]));
+    f.style.width = Math.min(100, v / t[2] * 100) + '%'; bar.appendChild(f); r.append(top, bar); rows.push(r);
+  });
+  s2.appendChild(el('div', 'Gesamt: ' + LVN[Math.min(3, Math.round(sum / 5))], 'big')); rows.forEach(r => s2.appendChild(r));
+  s2.appendChild(el('div', 'Hier lohnt sich extra Training: ' + TN[weak[1]] + '.', 'hint'));
+  s2.appendChild(el('div', 'Grobe Richtwerte für Kraftausdauer mit dem eigenen Körpergewicht, kein Wettkampf-Test. Die Werte kommen aus deinem Monatscheck und deinem Training.', 'mut'));
+  $m.appendChild(s2);
+}
+function setupView() {
+  const p = S.profile || { t: {} };
+  if (!SU) {
+    const f = SK.find(x => x[0] === S.focus);
+    SU = { name: p.name || '', age: p.age || '', kg: p.kg || '', sex: p.sex || '', cm: p.cm || '', goal: p.goal || '', lvl: p.lvl || '', focus: f ? f[1] : 'Keiner', eq: Object.assign({}, p.eq || {}), pu: p.t.pu || '', pp: p.t.pp || '', dp: p.t.dp || '', sq: p.t.sq || '', pl: p.t.pl || '', share: !!S.share };
+    suStep = 0;
+  }
+  const ST = [
+    { k: 'name', q: 'Wie heißt du?', type: 'text', ph: 'Dein Name' },
+    { k: 'age', q: 'Wie alt bist du?', type: 'number', ph: 'Jahre' },
+    { k: 'sex', q: 'Bist du ein Junge oder ein Mädchen?', hint: 'Das brauche ich für den Körper-Check (Vergleichswerte).', opts: ['Junge / Mann', 'Mädchen / Frau', 'Keine Angabe'] },
+    { k: 'kg', q: 'Wie viel wiegst du?', type: 'number', ph: 'kg' },
+    { k: 'cm', q: 'Wie groß bist du?', hint: 'Daraus berechne ich automatisch deinen BMI.', type: 'number', ph: 'cm' },
+    { k: 'goal', q: 'Was ist dein Hauptziel?', opts: ['Muskelaufbau', 'Kraft', 'Skills lernen', 'Fit & gesund'] },
+    { k: 'lvl', q: 'Wie viel Erfahrung hast du?', opts: ['Anfänger', 'Fortgeschritten', 'Profi'] },
+    { k: 'focus', q: 'Welchen Skill willst du am meisten lernen?', hint: 'Du kannst auch „Keiner" wählen.', opts: ['Keiner', ...SK.map(x => x[1])] },
+    { k: 'eq', q: 'Was hast du zur Verfügung?', hint: 'Tippe alles an, was du hast. Dein Plan nutzt nur diese Geräte.' },
+    { k: 'pu', q: 'Wie viele Klimmzüge schaffst du am Stück?', type: 'number', ph: '0, wenn noch keiner' },
+    { k: 'pp', q: 'Wie viele Liegestütze schaffst du am Stück?', type: 'number', ph: '0, wenn noch keiner' },
+    { k: 'dp', q: 'Wie viele Dips schaffst du am Stück?', type: 'number', ph: '0, wenn noch keiner' },
+    { k: 'sq', q: 'Wie viele Kniebeugen ohne Gewicht schaffst du am Stück?', type: 'number', ph: 'Anzahl' },
+    { k: 'pl', q: 'Wie lange hältst du die Plank?', type: 'number', ph: 'Sekunden' }
+  ];
+  const st = ST[suStep], N = ST.length, last = suStep === N - 1;
+  const finish = () => {
+    const n = v => +String(v).replace(',', '.') || 0, first = !S.profile;
+    const t = { pu: n(SU.pu), pp: n(SU.pp), dp: n(SU.dp), sq: n(SU.sq), pl: n(SU.pl) };
+    S.profile = { name: SU.name.trim(), age: n(SU.age), kg: n(SU.kg), cm: n(SU.cm), sex: SU.sex || 'Keine Angabe', goal: SU.goal || 'Fit & gesund', lvl: SU.lvl || 'Anfänger', eq: Object.fromEntries(EQLIST.map(([k]) => [k, !!SU.eq[k]])), t };
+    
+    if (S.profile.kg) S.bw = S.bw.filter(x => x.d !== today()).concat([{ d: today(), w: S.profile.kg }]);
+    if (first) {
+      if (t.pu >= 10) sk('mu').lvl = Math.max(sk('mu').lvl, 1);
+      if (t.sq >= 25) sk('ps').lvl = Math.max(sk('ps').lvl, 1);
+      S.checks.push({ d: today(), t: { ...t } });
+    }
+    const fx = SK.find(x => x[1] === SU.focus); S.focus = fx ? fx[0] : null;
+    SU = null; suStep = 0; buildPlan(); save(); go(first ? 'train' : 'profile');
+  };
+  const next = () => { if (last) finish(); else { suStep++; render(); } };
+  $m.appendChild(el('div', 'Frage ' + (suStep + 1) + ' von ' + N, 'mut'));
+  const bar = el('div', null, 'bar'), fi = el('i'); fi.style.width = ((suStep + 1) / N * 100) + '%'; bar.appendChild(fi); $m.appendChild(bar);
+  if (suStep === 0 && !S.profile) $m.appendChild(el('div', '👋 Willkommen! Ich passe deinen Trainingsplan automatisch an dich an.', 'hint'));
+  $m.appendChild(el('h1', st.q));
+  if (st.hint) $m.appendChild(el('div', st.hint, 'mut'));
+  const big = (txt, f, on) => { const b = btn(txt, f, on ? '' : 'g'); b.style.fontSize = '17px'; b.style.padding = '15px'; return b; };
+  if (st.opts) st.opts.forEach(o => $m.appendChild(big(o, () => { SU[st.k] = o; next(); }, SU[st.k] === o)));
+  else if (st.k === 'eq') {
+    EQLIST.forEach(([k, l]) => $m.appendChild(big((SU.eq[k] ? '☑  ' : '☐  ') + l, () => { SU.eq[k] = !SU.eq[k]; render(); }, SU.eq[k])));
+    $m.appendChild(btn('Weiter →', next));
+  } else if (st.consent) {
+    $m.appendChild(big((SU.share ? '☑  ' : '☐  ') + 'Ja, ich bin einverstanden', () => { SU.share = !SU.share; render(); }, SU.share));
+    $m.appendChild(btn('✓ Plan für mich erstellen', next));
+  } else {
+    const i = el('input'); i.type = st.type; i.placeholder = st.ph || ''; if (st.type === 'number') i.inputMode = 'decimal'; else i.style.textAlign = 'left';
+    i.value = SU[st.k]; i.oninput = () => { SU[st.k] = i.value; };
+    const go2 = () => { if (st.k === 'name' && !String(SU.name).trim()) { i.focus(); return; } next(); };
+    i.onkeydown = e => { if (e.key === 'Enter') go2(); };
+    $m.appendChild(i); setTimeout(() => { try { i.focus(); } catch (e) {} }, 100);
+    $m.appendChild(btn(last ? '✓ Plan für mich erstellen' : 'Weiter →', go2));
+  }
+  if (suStep > 0) $m.appendChild(btn('← Zurück', () => { suStep--; render(); }, 'g'));
+  else if (S.profile) $m.appendChild(btn('Abbrechen', () => { SU = null; go('profile'); }, 'g'));
+}
+function go(v) { view = v; render(); }
+
+function render() {
+  clearInterval(tick); $m.innerHTML = ''; $n.innerHTML = '';
+  const tabs = { train: 'Training', cal: 'Kalender', skills: 'Skills', rank: 'Rangliste', stats: 'Statistik', profile: 'Profil' }, ic = { train: '🏋️', cal: '📅', skills: '🎯', rank: '🏆', stats: '📊', profile: '👤' };
+  if (tabs[view] || view.startsWith('skill:') || view.startsWith('prev:')) {
+    const cur = view.startsWith('skill:') ? 'skills' : view.startsWith('prev:') ? 'train' : view;
+    Object.keys(tabs).forEach(k => { const b = el('button', null, k === cur ? 'on' : ''); b.appendChild(el('i', ic[k])); b.appendChild(el('span', tabs[k])); b.onclick = () => go(k); $n.appendChild(b); });
+  }
+  ({ train: home, body: bodyView, swap: swapView, rank: rankView, ai: aiView, check: checkView, profile: profileView, setup: setupView, cal: calView, skills: skillList, stats: stats, set: setView, rest: restView, done: doneView })[view.split(':')[0]] ?.call();
+  if (view.startsWith('skill:')) skillView(view.slice(6));
+  if (view.startsWith('prev:')) previewView(view.slice(5));
+}
+
+function home() {
+  const wk = mon(new Date()), n = new Set(S.log.filter(s => mon(s.d + 'T12:00') === wk).map(s => s.d + s.day)).size;
+  $m.appendChild(el('h1', '💪 Hallo' + (S.profile && S.profile.name ? ', ' + S.profile.name : '') + '!'));
+  if (S.profile) $m.appendChild(el('div', 'Dein Plan ist auf deine Werte angepasst ✔', 'mut'));
+  const xi = xpInfo(), xc = el('div', null, 'card'); xc.appendChild(el('div', '⭐ Level ' + xi.lvl, 'big'));
+  const xb = el('div', null, 'bar'), xf = el('i'); xf.style.width = (xi.cur / xi.need * 100) + '%'; xb.appendChild(xf); xc.appendChild(xb);
+  xc.appendChild(el('div', xi.xp + ' XP gesamt · noch ' + (xi.need - xi.cur) + ' XP bis Level ' + (xi.lvl + 1), 'mut')); $m.appendChild(xc);
+  $m.appendChild(el('div', '💬 ' + QUOTES[Math.floor(Date.now() / 864e5) % QUOTES.length], 'hint'));
+  const c = el('div', null, 'card'); c.appendChild(el('h2', 'Diese Woche: ' + n + ' von ' + S.goal + ' Trainings'));
+  const b = el('div', null, 'bar'), f = el('i'); f.style.width = Math.min(100, n / S.goal * 100) + '%'; b.appendChild(f); c.appendChild(b);
+  let st = n >= S.goal ? 1 : 0;
+  for (let i = 1; i <= 52; i++) { const d = new Date(); d.setDate(d.getDate() - 7 * i); const k = mon(d); if (new Set(S.log.filter(x => mon(x.d + 'T12:00') === k).map(x => x.d + x.day)).size >= S.goal) st++; else break; }
+  if (st) c.appendChild(el('div', '🔥 Serie: ' + st + (st === 1 ? ' Woche' : ' Wochen') + ' Ziel erreicht', 'mut'));
+  const g = el('div', 'Wochenziel ändern (tippen)', 'mut'); g.onclick = () => { S.goal = S.goal >= 6 ? 2 : S.goal + 1; save(); render(); }; c.appendChild(g);
+  $m.appendChild(c);
+  const fs = SK.find(x => x[0] === S.focus);
+  if (fs) { const l = sk(fs[0]).lvl, b = el('button', null, 'start'), d = el('div'); d.appendChild(el('b', '🎯 Fokus: ' + fs[2] + ' ' + fs[1])); d.appendChild(el('br')); d.appendChild(el('span', l >= fs[4].length ? '✅ Geschafft' : 'Jetzt üben: ' + fs[4][l][0] + ' (' + fs[4][l][1] + ')')); b.appendChild(d); b.appendChild(el('span', '▶')); b.onclick = () => go('skill:' + fs[0]); $m.appendChild(b); }
+  if (dueNow()) $m.appendChild(btn('📋 Monatscheck fällig! Jetzt machen (Training erst danach)', () => go('check')));
+  const lastD = k => { const l = [...S.log].reverse().find(s => s.day === k); return l ? l.d : ''; };
+  const rec = S.plan[today()] || Object.keys(PLAN).sort((a, b) => lastD(a) < lastD(b) ? -1 : 1)[0];
+  if (S.plan[today()]) $m.appendChild(el('div', '📅 Heute geplant: ' + S.plan[today()], 'hint'));
+  Object.keys(PLAN).forEach(k => {
+    const last = [...S.log].reverse().find(s => s.day === k), cnt = PLAN[k].reduce((a, e) => a + e[1], 0);
+    const bt = el('button', null, 'start'), l = el('div'); l.appendChild(el('b', k)); l.appendChild(el('br'));
+    l.appendChild(el('span', PLAN[k].length + ' Übungen · ' + cnt + ' Sätze · ' + (last ? 'zuletzt ' + new Date(last.d + 'T12:00').toLocaleDateString('de-DE') : 'noch nie')));
+    bt.appendChild(l); const sp = el('span', (k === rec ? '⭐ ' : '') + '▶ Start'); sp.style.cssText = 'background:var(--ac);color:#fff;padding:8px 12px;border-radius:10px;font-size:14px'; sp.onclick = e => { e.stopPropagation(); start(k); }; bt.appendChild(sp); bt.onclick = () => go('prev:' + k); $m.appendChild(bt);
+  });
+}
+
+function start(k) {
+  if (dueNow()) { go('check'); return; }
+  if (!PLAN[k]) { go('train'); return; }
+  const q = []; PLAN[k].forEach(([ex, sets, reps, pause]) => { for (let i = 1; i <= sets; i++) q.push({ ex, n: i, total: sets, reps, pause }); });
+  sess = { k, q, i: 0, done: 0, pr: [] };
+  try { navigator.wakeLock && navigator.wakeLock.request('screen').catch(() => {}); } catch (e) {}
+  go('set');
+}
+
+function setView() {
+  const c = sess.q[sess.i], prev = lastOf(c.ex), sg = suggest(c.ex, c.total, c.reps), first = c.n === 1;
+  if (sess.said !== sess.i) { sess.said = sess.i; const tt = tgFor(c); say((sess.i ? 'Los. ' : 'Los geht\'s. ') + c.ex + ', Satz ' + c.n + ' von ' + c.total + sayTarget(tt, c.ex)); }
+  $m.appendChild(el('div', sess.k + ' · Satz ' + (sess.i + 1) + ' von ' + sess.q.length, 'mut'));
+  const bar = el('div', null, 'bar'), f = el('i'); f.style.width = (sess.i / sess.q.length * 100) + '%'; bar.appendChild(f); $m.appendChild(bar);
+  if (sess.i === 0) $m.appendChild(el('div', '🔥 Aufwärmen (5 min): Arm- und Schulterkreisen, Katzenbuckel, leichte Sätze mit wenig Gewicht.', 'hint'));
+  const card = el('div', null, 'card'); card.appendChild(el('div', 'Übung', 'mut')); card.appendChild(el('div', c.ex, 'big'));
+  card.appendChild(el('div', 'Satz ' + c.n + ' von ' + c.total + ' · Ziel: ' + c.reps + (/Sek/.test(c.ex) ? '' : ' Wdh.'), 'mut'));
+  const ps = prevSession(c.ex), pset = ps ? (ps[c.n - 1] || ps[ps.length - 1]) : null, tg = pset ? target(pset, c.reps) : null;
+  if (ps) card.appendChild(el('div', 'Letztes Mal: ' + ps.map((x, i) => (i + 1) + ') +' + fmt(x.w) + '×' + x.r).join('  '), 'mut'));
+  $m.appendChild(card);
+  if (tg) $m.appendChild(el('div', '🎯 Ziel heute (Satz ' + c.n + '): +' + fmt(tg.w) + ' kg × ' + tg.r + (tg.w > pset.w ? '  · Alles geschafft, mehr Gewicht!' : '  · eine Wiederholung mehr'), 'hint'));
+  $m.appendChild(guideCard(c.ex));
+  const r = el('div', null, 'row'), fw = el('div', null, 'fld'), fr = el('div', null, 'fld'), w = el('input'), re = el('input');
+  fw.appendChild(el('label', 'Zusatzgewicht (kg)')); w.type = 'number'; w.inputMode = 'decimal';
+  const own = S.log.filter(s => s.ex === c.ex && s.d === today() && s.day === sess.k).pop();
+  w.value = own ? own.w : tg ? tg.w : 0; fw.appendChild(w);
+  fr.appendChild(el('label', /Sek/.test(c.ex) ? 'Sekunden' : 'Wiederholungen')); re.type = 'number'; re.inputMode = 'numeric'; re.placeholder = tg ? String(tg.r) : '0'; fr.appendChild(re);
+  r.append(fw, fr); $m.appendChild(r);
+  if (/Sek/.test(c.ex)) $m.appendChild(holdWidget('Halte-Timer', sec => { re.value = Math.round(sec); }));
+  $m.appendChild(btn('✓ Satz fertig · Weiter', () => {
+    const wv = parseFloat(String(w.value || '0').replace(',', '.')) || 0, rv = parseInt(re.value, 10);
+    if (isNaN(rv)) { re.focus(); return; }
+    const pb = Math.max(0, ...S.log.filter(s => s.ex === c.ex).map(e1)), ent = { d: today(), day: sess.k, ex: c.ex, w: wv, r: rv };
+    if (pb > 0 && e1(ent) > pb && !sess.pr.includes(c.ex)) { sess.pr.push(c.ex); popup('🏆 Neuer Rekord!', c.ex + ': ' + (wv > 0 ? '+' + fmt(wv) + ' kg × ' : '') + rv); }
+    S.log.push(ent); save(); sess.done++; sess.i++;
+    if (sess.i >= sess.q.length) go('done'); else { end = Date.now() + c.pause * 1000; go('rest'); }
+  }));
+  $m.appendChild(btn('+ Zusatzsatz', () => {
+    const ix = sess.q.map((x, i) => x.ex === c.ex ? i : -1).filter(i => i >= 0), li = ix[ix.length - 1], nn = sess.q[li].n + 1;
+    ix.forEach(i => sess.q[i].total = nn); sess.q.splice(li + 1, 0, { ...c, n: nn, total: nn }); render();
+  }, 'g'));
+  $m.appendChild(btn('Übung überspringen', () => { const x = c.ex; while (sess.i < sess.q.length && sess.q[sess.i].ex === x) sess.i++; go(sess.i >= sess.q.length ? 'done' : 'set'); }, 'g'));
+  $m.appendChild(btn('Training beenden', () => go(sess.done ? 'done' : 'train'), 'g'));
+}
+
+function restView() {
+  const nx = sess.q[sess.i], t = el('div', null, 'ctr'), clk = el('div', '', 'clock');
+  say('Pause. Als Nächstes: ' + nx.ex + ', Satz ' + nx.n + sayTarget(tgFor(nx), nx.ex));
+  t.appendChild(el('div', 'Pause', 'mut')); t.appendChild(clk); $m.appendChild(t);
+  if (sess.pr.length) $m.appendChild(el('div', '🏆 Neuer Rekord: ' + sess.pr[sess.pr.length - 1] + '!', 'hint ctr'));
+  const card = el('div', null, 'card ctr'); card.appendChild(el('div', 'Als Nächstes', 'mut')); card.appendChild(el('h2', nx.ex)); card.appendChild(el('div', 'Satz ' + nx.n + ' von ' + nx.total, 'mut')); $m.appendChild(card);
+  let lb = -1; const show = () => { const l = Math.max(0, Math.ceil((end - Date.now()) / 1000)); if (l <= 3 && l > 0 && l !== lb) { lb = l; if (S.voice === false) beep(600, 80); else say(String(l)); } clk.textContent = Math.floor(l / 60) + ':' + String(l % 60).padStart(2, '0'); if (l <= 0) { clearInterval(tick); beep(1000, 350); go('set'); } };
+  show(); tick = setInterval(show, 250);
+  $m.appendChild(btn('+30 s', () => { end += 30000; show(); }, 'g'));
+  $m.appendChild(btn('Weiter → nächster Satz', () => go('set')));
+}
+
+function doneView() {
+  const sw = streakWeeks(); [2, 4, 8, 12].forEach(n => { if (sw >= n) award('streak' + n, '🔥 ' + n + ' Wochen in Folge!', 'Dein Wochenziel ' + n + ' Wochen hintereinander geschafft.'); });
+  say('Training geschafft. Stark!');
+  $m.appendChild(el('h1', '🎉 Geschafft!'));
+  const ss = S.log.filter(s => s.d === today() && s.day === sess.k).slice(-sess.done), vol = ss.reduce((a, s) => a + s.w * s.r, 0);
+  const c = el('div', null, 'card'); c.appendChild(el('h2', sess.k + ' · ' + sess.done + ' Sätze'));
+  c.appendChild(el('div', 'Zusatzgewicht-Volumen: ' + Math.round(vol) + ' kg', 'mut'));
+  sess.pr.forEach(p => c.appendChild(el('div', '🏆 Rekord: ' + p, 'set')));
+  ss.forEach(s => c.appendChild(el('div', s.ex + ': +' + fmt(s.w) + ' kg × ' + s.r, 'set')));
+  c.appendChild(el('div', '+' + (sess.done * 10 + 50 + sess.pr.length * 25) + ' XP verdient', 'mut')); $m.appendChild(c);
+  const xi = xpInfo(); if (xi.lvl > (S.lvl || 1)) { S.lvl = xi.lvl; save(); popup('⭐ Level ' + xi.lvl + '!', 'Du hast ' + xi.xp + ' XP gesammelt. Weiter so!'); }
+  $m.appendChild(el('div', '💬 ' + QUOTES[Math.floor(Math.random() * QUOTES.length)], 'hint'));
+  $m.appendChild(btn('Fertig', () => go('train')));
+}
+
+let cm = new Date(new Date().getFullYear(), new Date().getMonth(), 1), csel = today();
+function calView() {
+  $m.appendChild(el('h1', '📅 Kalender'));
+  $m.appendChild(el('div', '🔥 Streak: ' + streakWeeks() + (streakWeeks() === 1 ? ' Woche' : ' Wochen') + ' Ziel erreicht · ' + new Set(S.log.map(x => x.d)).size + ' Trainingstage insgesamt', 'hint'));
+  const c = el('div', null, 'card'), hd = el('div', null, 'row'); hd.style.alignItems = 'center';
+  const pv = btn('‹', () => { cm = new Date(cm.getFullYear(), cm.getMonth() - 1, 1); render(); }, 'g'), nx = btn('›', () => { cm = new Date(cm.getFullYear(), cm.getMonth() + 1, 1); render(); }, 'g');
+  const ti = el('h2', cm.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })); ti.style.cssText = 'flex:3;text-align:center';
+  pv.style.cssText = nx.style.cssText = 'flex:1;width:auto;padding:10px;font-size:20px'; hd.append(pv, ti, nx); c.appendChild(hd);
+  const g = el('div'); g.style.cssText = 'display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:10px';
+  ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].forEach(d => { const e = el('div', d, 'mut ctr'); g.appendChild(e); });
+  const y = cm.getFullYear(), mo = cm.getMonth(), off = (new Date(y, mo, 1).getDay() + 6) % 7, dim = new Date(y, mo + 1, 0).getDate(), done = {};
+  S.log.forEach(x => { (done[x.d] = done[x.d] || new Set()).add(x.day); });
+  for (let i = 0; i < off; i++) g.appendChild(el('div'));
+  for (let d = 1; d <= dim; d++) {
+    const ds = dstr(new Date(y, mo, d)), dn = done[ds], pl = S.plan[ds];
+    const b = el('button', null); b.style.cssText = 'border:0;border-radius:10px;padding:6px 0;color:' + (dn ? '#fff' : 'var(--fg)') + ';background:' + (dn ? '#16a34a' : pl ? '#16a34a33' : 'var(--bg)') + ';' + (ds === csel ? 'outline:2px solid var(--ac);' : '') + (ds === today() ? 'font-weight:700;' : '');
+    b.appendChild(el('div', d)); const sm = el('div', dn ? [...dn].map(x => x.slice(0, 2)).join(' ') : pl ? '○ ' + pl.slice(0, 2) : '·'); sm.style.fontSize = '10px'; b.appendChild(sm);
+    b.onclick = () => { csel = ds; render(); }; g.appendChild(b);
+  }
+  c.appendChild(g); $m.appendChild(c);
+  const sel = el('div', null, 'card'); sel.appendChild(el('h2', new Date(csel + 'T12:00').toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })));
+  const day = S.log.filter(x => x.d === csel);
+  if (day.length) [...new Set(day.map(x => x.day))].forEach(k => { const ss = day.filter(x => x.day === k); sel.appendChild(el('div', '✅ ' + k + ' · ' + ss.length + ' Sätze', 'set')); ss.forEach(x => { const r = el('div', null, 'set'); r.appendChild(el('span', x.ex + ': +' + fmt(x.w) + ' kg × ' + x.r, 'mut')); const d = el('button', '✕'); d.style.cssText = 'border:0;background:none;color:#e5384f;font-size:16px'; d.onclick = () => { S.log.splice(S.log.indexOf(x), 1); save(); render(); }; r.appendChild(d); sel.appendChild(r); }); });
+  else sel.appendChild(el('div', S.plan[csel] ? '📌 Geplant: ' + S.plan[csel] : 'Kein Training eingetragen.', 'mut'));
+  $m.appendChild(sel);
+  const pc = el('div', null, 'card'); pc.appendChild(el('h2', 'Training planen')); pc.appendChild(el('div', 'Tippe ein Training für diesen Tag:', 'mut'));
+  const row = el('div'); row.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;margin-top:8px';
+  Object.keys(PLAN).forEach(k => { const b = btn(k, () => { S.plan[csel] = k; save(); render(); }, S.plan[csel] === k ? '' : 'g'); b.style.cssText = 'width:auto;flex:1 0 30%'; row.appendChild(b); });
+  pc.appendChild(row);
+  if (S.plan[csel]) { pc.appendChild(btn('▶ ' + S.plan[csel] + ' jetzt starten', () => start(S.plan[csel]))); pc.appendChild(btn('Plan entfernen', () => { delete S.plan[csel]; save(); render(); }, 'g')); }
+  $m.appendChild(pc);
+}
+
+function skillList() {
+  $m.appendChild(el('h1', '🎯 Skills lernen')); $m.appendChild(el('div', 'Stufe für Stufe zum Ziel. Tippe auf einen Skill.', 'mut'));
+  SK.forEach(([id, name, em, , st]) => {
+    const l = sk(id).lvl, b = el('button', null, 'start'), d = el('div');
+    d.appendChild(el('b', em + ' ' + name)); d.appendChild(el('br'));
+    d.appendChild(el('span', l >= st.length ? '✅ Geschafft!' : 'Aktuell: ' + st[l][0]));
+    b.appendChild(d); b.appendChild(el('span', l + '/' + st.length)); b.onclick = () => go('skill:' + id); $m.appendChild(b);
+  });
+}
+
+function skillView(id) {
+  const [, name, em, tip, st] = SK.find(s => s[0] === id), p = sk(id);
+  $m.appendChild(btn('← Alle Skills', () => go('skills'), 'g'));
+  $m.appendChild(el('h1', em + ' ' + name)); $m.appendChild(el('div', '💡 ' + tip, 'hint'));
+  $m.appendChild(el('div', '📆 Skill 2–3× pro Woche am Trainingsanfang üben: 3–5 Versuche, nie bis zur Erschöpfung. Erst die Stufe wechseln, wenn das Ziel sauber klappt.', 'hint'));
+  $m.appendChild(btn(S.focus === id ? '⭐ Fokus-Skill (tippen zum Entfernen)' : '☆ Als Fokus-Skill setzen', () => { S.focus = S.focus === id ? null : id; save(); render(); }, 'g'));
+  const c = el('div', null, 'card');
+  st.forEach(([n, g], i) => {
+    const d = el('div', null, 'set' + (i === p.lvl ? ' cur' : '')); d.appendChild(el('span', (i < p.lvl ? '✓ ' : i + 1 + '. ') + n));
+    d.appendChild(el('span', g + (p.best[i] ? ' · Best ' + p.best[i] + ' s' : ''), 'mut')); c.appendChild(d);
+  });
+  $m.appendChild(c);
+  if (p.lvl < st.length) {
+    $m.appendChild(holdWidget('Halte-Timer für: ' + st[p.lvl][0], sec => { if (sec > (p.best[p.lvl] || 0)) { p.best[p.lvl] = sec; save(); } }));
+    $m.appendChild(btn('✓ Stufe geschafft → nächste', () => { const nm = st[p.lvl][0]; p.lvl++; award('skill:' + id + ':' + p.lvl, '🎯 Stufe geschafft!', name + ': ' + nm); save(); render(); }, 'g'));
+  } else $m.appendChild(el('div', '🏆 Alle Stufen geschafft. Stark!', 'card ctr'));
+  if (p.lvl > 0) $m.appendChild(btn('← eine Stufe zurück', () => { p.lvl--; save(); render(); }, 'g'));
+}
+
+function line(pts, labels) {
+  if (pts.length < 2) return el('div', 'Noch zu wenig Daten (mindestens 2 Trainingstage).', 'mut');
+  const mx = Math.max(...pts), mn = Math.min(...pts), rg = mx - mn || 1, W = 300, H = 110;
+  const xy = pts.map((v, i) => [10 + i * (W - 20) / (pts.length - 1), H - 15 - (v - mn) / rg * (H - 35)]);
+  const ns = 'http://www.w3.org/2000/svg', s = document.createElementNS(ns, 'svg'); s.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+  const pl = document.createElementNS(ns, 'polyline'); pl.setAttribute('points', xy.map(p => p.join(',')).join(' ')); pl.setAttribute('fill', 'none'); pl.setAttribute('stroke', '#16a34a'); pl.setAttribute('stroke-width', '3'); s.appendChild(pl);
+  [0, xy.length - 1].forEach(i => { const t = document.createElementNS(ns, 'text'); t.setAttribute('x', xy[i][0]); t.setAttribute('y', xy[i][1] - 8); t.setAttribute('font-size', '12'); t.setAttribute('fill', 'currentColor'); t.setAttribute('text-anchor', i ? 'end' : 'start'); t.textContent = fmt(pts[i]); s.appendChild(t); });
+  return s;
+}
+
+function stats() {
+  $m.appendChild(el('h1', '📊 Statistik'));
+  const cs = S.checks || [], cc = el('div', null, 'card'); cc.appendChild(el('h2', '🗓️ Monatscheck: wie stark bist du?'));
+  cc.appendChild(el('div', dueNow() ? '⚠️ Fällig! Mach den Check, um weiter zu trainieren.' : 'Nächster Check: ' + nextCheck().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' }), 'mut'));
+  if (dueNow()) cc.appendChild(btn('Check jetzt machen', () => go('check')));
+  if (cs.length >= 2) {
+    const f = cs[0].t, ks = Object.keys(f).filter(k => f[k] > 0), idx = cs.map(x => ks.length ? ks.reduce((a, k) => a + (x.t[k] || 0) / f[k] * 100, 0) / ks.length : 100);
+    const h = el('div', 'Stärke-Index (erster Check = 100 %)', 'mut'); h.style.marginTop = '10px'; cc.appendChild(h); cc.appendChild(line(idx));
+    cc.appendChild(el('div', new Date(cs[0].d + 'T12:00').toLocaleDateString('de-DE') + '  →  ' + new Date(cs[cs.length - 1].d + 'T12:00').toLocaleDateString('de-DE'), 'mut'));
+    const l = cs[cs.length - 1].t; Object.keys(TN).forEach(k => { const d = (l[k] || 0) - (f[k] || 0), r = el('div', null, 'set'); r.appendChild(el('span', TN[k])); r.appendChild(el('span', (f[k] || 0) + ' → ' + (l[k] || 0) + ' (' + (d > 0 ? '+' : '') + d + ')', 'mut')); cc.appendChild(r); });
+  } else cc.appendChild(el('div', 'Das Diagramm erscheint nach deinem 2. Monatscheck.', 'mut'));
+  $m.appendChild(cc);
+  const b0 = el('div', null, 'card'); b0.appendChild(el('h2', '⚖️ Körpergewicht'));
+  const r0 = el('div', null, 'row'), bi = el('input'), bs = btn('Speichern', () => { const v = parseFloat(bi.value.replace(',', '.')); if (isNaN(v)) return; S.bw = S.bw.filter(x => x.d !== today()); S.bw.push({ d: today(), w: v }); save(); render(); });
+  r0.style.marginTop = '8px'; bi.type = 'number'; bi.inputMode = 'decimal'; bi.placeholder = S.bw.length ? String(S.bw[S.bw.length - 1].w) : 'kg'; bs.style.cssText = 'width:auto;flex:0 0 auto;font-size:16px'; r0.append(bi, bs); b0.appendChild(r0);
+  if (S.bw.length > 1) b0.appendChild(line(S.bw.map(x => x.w))); else if (S.bw.length) b0.appendChild(el('div', 'Aktuell: ' + fmt(S.bw[0].w) + ' kg', 'mut'));
+  $m.appendChild(b0);
+  if (!S.log.length) { $m.appendChild(el('div', 'Starte dein erstes Training, dann erscheinen hier Diagramme.', 'mut')); return; }
+  const exs = [...new Set(S.log.map(s => s.ex))]; if (!selEx || !exs.includes(selEx)) selEx = exs[0];
+  const pc = el('div', null, 'card'); pc.appendChild(el('h2', 'Fortschritt pro Übung'));
+  const sel = el('select'); exs.forEach(e => { const o = el('option', e); sel.appendChild(o); }); sel.value = selEx; sel.onchange = () => { selEx = sel.value; render(); };
+  sel.style.margin = '8px 0'; pc.appendChild(sel);
+  const byD = {}; S.log.filter(s => s.ex === selEx).forEach(s => { byD[s.d] = Math.max(byD[s.d] || 0, e1(s)); });
+  pc.appendChild(line(Object.keys(byD).sort().map(k => byD[k]))); pc.appendChild(el('div', 'Geschätztes Maximum (1RM) bzw. beste Wiederholungen je Tag', 'mut')); $m.appendChild(pc);
+  const bc = el('div', null, 'card'); bc.appendChild(el('h2', '🏆 Bestwerte'));
+  exs.forEach(x => { const b = S.log.filter(s => s.ex === x).sort((a, c) => e1(c) - e1(a))[0]; bc.appendChild(el('div', x + ': +' + fmt(b.w) + ' kg × ' + b.r, 'set')); }); $m.appendChild(bc);
+  const hc = el('div', null, 'card'); hc.appendChild(el('h2', '🗂️ Trainingshistorie'));
+  [...new Set(S.log.map(x => x.d + '|' + x.day))].sort().reverse().slice(0, 12).forEach(key => { const [d, dy] = key.split('|'), ss = S.log.filter(x => x.d === d && x.day === dy), vol = ss.reduce((a, x) => a + x.w * x.r, 0), r = el('div', null, 'set'); r.appendChild(el('span', new Date(d + 'T12:00').toLocaleDateString('de-DE', { day: 'numeric', month: 'short' }) + ' · ' + dy)); r.appendChild(el('span', ss.length + ' Sätze' + (vol ? ' · ' + Math.round(vol) + ' kg' : ''), 'mut')); hc.appendChild(r); });
+  $m.appendChild(hc);
+}
+init();
+</script>
+</body>
+</html>
